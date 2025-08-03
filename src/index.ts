@@ -1,5 +1,5 @@
 import { createApp } from './app';
-import { RedisService, SchedulerService } from './services';
+import { RedisService, SchedulerService, AuditService } from './services';
 import { logger } from './utils';
 
 const PORT = process.env.PORT || 3001;
@@ -9,13 +9,16 @@ async function startServer() {
     const redisService = new RedisService();
     await redisService.connect();
 
-    const app = createApp(redisService);
+    const auditService = new AuditService();
+    await auditService.connect();
+
+    const app = createApp(redisService, auditService);
     
     const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
     });
 
-    const schedulerService = new SchedulerService(redisService);
+    const schedulerService = new SchedulerService(redisService, auditService);
     schedulerService.start();
 
     const gracefulShutdown = async (signal: string) => {
@@ -27,8 +30,11 @@ async function startServer() {
         logger.info('HTTP server closed');
         
         try {
-          await redisService.disconnect();
-          logger.info('Redis connection closed');
+          await Promise.all([
+            redisService.disconnect(),
+            auditService.disconnect()
+          ]);
+          logger.info('Database connections closed');
           process.exit(0);
         } catch (error) {
           logger.error('Error during shutdown:', error);

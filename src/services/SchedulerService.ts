@@ -1,16 +1,19 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Status, QueueObject, Outcome, isTerminalStatus } from '../models';
+import { Status, QueueObject, Outcome, isTerminalStatus, AuditAction } from '../models';
 import { RedisService } from './RedisService';
+import { AuditService } from './AuditService';
 import { logger } from '../utils';
 
 export class SchedulerService {
   private redisService: RedisService;
+  private auditService: AuditService;
   private insertTimeout: NodeJS.Timeout | null = null;
   private updateTimeout: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
 
-  constructor(redisService: RedisService) {
+  constructor(redisService: RedisService, auditService: AuditService) {
     this.redisService = redisService;
+    this.auditService = auditService;
   }
 
   start(): void {
@@ -73,6 +76,7 @@ export class SchedulerService {
     
     const queueObject: QueueObject = {
       objectId: uuidv4(),
+      objectType: 'batch',
       created: now,
       updated: now,
       status: Status.RECEIVED,
@@ -85,6 +89,15 @@ export class SchedulerService {
     };
 
     await this.redisService.addToQueue(queueObject);
+    
+    await this.auditService.addAuditEntry({
+      objectId: queueObject.objectId,
+      objectType: queueObject.objectType,
+      action: AuditAction.CREATED,
+      newStatus: queueObject.status,
+      metadata: 'Record created by scheduler'
+    });
+    
     logger.info(`Inserted new record: ${queueObject.objectId} with ${records} records`);
   }
 
@@ -106,6 +119,17 @@ export class SchedulerService {
       status: nextStatus,
       updated: new Date(),
       outcome
+    });
+
+    await this.auditService.addAuditEntry({
+      objectId: obj.objectId,
+      objectType: obj.objectType,
+      action: AuditAction.UPDATED,
+      previousStatus: obj.status,
+      newStatus: nextStatus,
+      previousOutcome: obj.outcome,
+      newOutcome: outcome,
+      metadata: 'Status updated by scheduler'
     });
 
     logger.debug(`Updated ${obj.objectId}: ${obj.status} -> ${nextStatus}${outcome ? ` (${outcome})` : ''}`);

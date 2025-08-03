@@ -14,6 +14,7 @@ export enum Outcome {
 
 export interface QueueObject {
   objectId: string;
+  objectType: string;
   created: string;
   updated: string;
   status: Status;
@@ -38,4 +39,30 @@ export interface QueueStats {
 export interface QueueStatsResponse {
   success: boolean;
   data: QueueStats;
+}
+
+export enum AuditAction {
+  CREATED = 'CREATED',
+  UPDATED = 'UPDATED'
+}
+
+export interface AuditEntry {
+  auditId: string;
+  objectId: string;
+  objectType: string;
+  action: AuditAction;
+  previousStatus?: Status;
+  newStatus: Status;
+  previousOutcome?: Outcome;
+  newOutcome?: Outcome;
+  timestamp: string;
+  metadata?: string;
+}
+
+export interface AuditResponse {
+  success: boolean;
+  data: AuditEntry[];
+  count: number;
+  objectType?: string;
+  objectId?: string;
 }

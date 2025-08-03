@@ -43,6 +43,7 @@ export class RedisService {
       
       await this.client.hSet(objectKey, {
         objectId: queueObject.objectId,
+        objectType: queueObject.objectType,
         created: queueObject.created.toISOString(),
         updated: queueObject.updated.toISOString(),
         status: queueObject.status,
@@ -69,17 +70,18 @@ export class RedisService {
         const objectKey = `${this.OBJECT_KEY_PREFIX}${objectId}`;
         const objectData = await this.client.hGetAll(objectKey);
         
-        if (objectData && objectData.objectId) {
-          objects.push({
-            objectId: objectData.objectId,
-            created: new Date(objectData.created),
-            updated: new Date(objectData.updated),
-            status: objectData.status as any,
-            metadata: objectData.metadata,
-            records: parseInt(objectData.records),
-            outcome: objectData.outcome ? objectData.outcome as Outcome : undefined
-          });
-        }
+                      if (objectData && objectData.objectId) {
+                objects.push({
+                  objectId: objectData.objectId,
+                  objectType: objectData.objectType || 'batch',
+                  created: new Date(objectData.created),
+                  updated: new Date(objectData.updated),
+                  status: objectData.status as any,
+                  metadata: objectData.metadata,
+                  records: parseInt(objectData.records),
+                  outcome: objectData.outcome ? objectData.outcome as Outcome : undefined
+                });
+              }
       }
 
       return objects.sort((a, b) => {

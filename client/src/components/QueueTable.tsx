@@ -1,12 +1,21 @@
 
 import { format } from 'date-fns';
-import { QueueObject, Status, Outcome } from '../types';
+import { useState } from 'react';
+import { QueueObject, Status, Outcome, AuditEntry } from '../types';
+import { auditApi } from '../services/api';
+import { AuditTable } from './AuditTable';
 
 interface QueueTableProps {
   data: QueueObject[];
   isLoading: boolean;
   newRecordIds?: Set<string>;
   updatedRecordIds?: Set<string>;
+}
+
+interface ExpandedRowState {
+  isExpanded: boolean;
+  auditEntries: AuditEntry[];
+  isLoadingAudit: boolean;
 }
 
 const StatusBadge = ({ status }: { status: Status }) => {
@@ -61,10 +70,53 @@ const LoadingRow = () => (
     <td className="px-6 py-4 whitespace-nowrap">
       <div className="h-6 bg-gray-200 rounded-full w-16"></div>
     </td>
+    <td className="px-6 py-4 whitespace-nowrap">
+      <div className="h-4 bg-gray-200 rounded w-8"></div>
+    </td>
   </tr>
 );
 
 export const QueueTable = ({ data, isLoading, newRecordIds = new Set(), updatedRecordIds = new Set() }: QueueTableProps) => {
+  const [expandedRows, setExpandedRows] = useState<Record<string, ExpandedRowState>>({});
+
+  const toggleRow = async (objectId: string, objectType: string) => {
+    const currentState = expandedRows[objectId];
+    
+    if (currentState?.isExpanded) {
+      setExpandedRows(prev => ({
+        ...prev,
+        [objectId]: { ...prev[objectId], isExpanded: false }
+      }));
+    } else {
+      setExpandedRows(prev => ({
+        ...prev,
+        [objectId]: { isExpanded: true, auditEntries: [], isLoadingAudit: true }
+      }));
+
+      try {
+        const auditResponse = await auditApi.getAuditEntriesForObject(objectType, objectId);
+        setExpandedRows(prev => ({
+          ...prev,
+          [objectId]: {
+            isExpanded: true,
+            auditEntries: auditResponse.data,
+            isLoadingAudit: false
+          }
+        }));
+      } catch (error) {
+        console.error('Failed to fetch audit entries:', error);
+        setExpandedRows(prev => ({
+          ...prev,
+          [objectId]: {
+            isExpanded: true,
+            auditEntries: [],
+            isLoadingAudit: false
+          }
+        }));
+      }
+    }
+  };
+
   return (
     <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
       <table className="min-w-full divide-y divide-gray-300">
@@ -85,10 +137,13 @@ export const QueueTable = ({ data, isLoading, newRecordIds = new Set(), updatedR
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Records
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Outcome
-            </th>
-          </tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Outcome
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {isLoading ? (
@@ -97,7 +152,7 @@ export const QueueTable = ({ data, isLoading, newRecordIds = new Set(), updatedR
             ))
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
+              <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
                 No queue objects found
               </td>
             </tr>
@@ -114,6 +169,7 @@ export const QueueTable = ({ data, isLoading, newRecordIds = new Set(), updatedR
               }
               
               return (
+                <>
                 <tr 
                   key={object.objectId} 
                   className={`transition-colors duration-200 ${animationClass}`}
@@ -136,7 +192,36 @@ export const QueueTable = ({ data, isLoading, newRecordIds = new Set(), updatedR
                   <td className="px-6 py-4 whitespace-nowrap">
                     <OutcomeBadge outcome={object.outcome} />
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => toggleRow(object.objectId, object.objectType)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      title="View audit history"
+                    >
+                      <svg
+                        className={`w-5 h-5 transform transition-transform duration-200 ${
+                          expandedRows[object.objectId]?.isExpanded ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </td>
                 </tr>
+                {expandedRows[object.objectId]?.isExpanded && (
+                  <tr>
+                    <td colSpan={7} className="p-0">
+                      <AuditTable
+                        auditEntries={expandedRows[object.objectId]?.auditEntries || []}
+                        isLoading={expandedRows[object.objectId]?.isLoadingAudit || false}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </>
               );
             })
           )}

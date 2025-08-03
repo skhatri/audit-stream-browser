@@ -14,6 +14,7 @@ export enum Outcome {
 
 export interface QueueObject {
   objectId: string;
+  objectType: string;
   created: Date;
   updated: Date;
   status: Status;
@@ -29,6 +30,7 @@ export interface QueueObjectCreate {
 
 export interface QueueObjectUpdate {
   status: Status;
+  updated: Date;
   outcome?: Outcome;
 }
 

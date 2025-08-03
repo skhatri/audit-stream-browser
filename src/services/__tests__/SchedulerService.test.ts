@@ -6,11 +6,8 @@ import * as cron from 'node-cron';
 jest.mock('node-cron');
 jest.mock('../RedisService');
 
-const mockRedisService = {
-  addToQueue: jest.fn().mockResolvedValue(undefined),
-  getQueueObjects: jest.fn().mockResolvedValue([]),
-  updateQueueObject: jest.fn().mockResolvedValue(undefined)
-} as jest.Mocked<RedisService>;
+const mockRedisService: jest.Mocked<RedisService> = new (RedisService as any)();
+
 
 const mockTask = {
   start: jest.fn(),
@@ -24,6 +21,9 @@ describe('SchedulerService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRedisService.addToQueue = jest.fn().mockResolvedValue(undefined);
+    mockRedisService.getQueueObjects = jest.fn().mockResolvedValue([]);
+    mockRedisService.updateQueueObject = jest.fn().mockResolvedValue(undefined);
     schedulerService = new SchedulerService(mockRedisService);
   });
 

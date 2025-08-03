@@ -4,10 +4,11 @@ import morgan from 'morgan';
 import path from 'path';
 import { corsMiddleware } from './middleware/cors';
 import { createQueueRoutes } from './routes/queue';
-import { RedisService } from './services';
+import { createAuditRoutes } from './routes/audit';
+import { RedisService, AuditService } from './services';
 import { logger } from './utils';
 
-export const createApp = (redisService: RedisService): express.Application => {
+export const createApp = (redisService: RedisService, auditService: AuditService): express.Application => {
   const app = express();
 
   app.use(helmet());
@@ -21,6 +22,7 @@ export const createApp = (redisService: RedisService): express.Application => {
   });
 
   app.use('/api/queue', createQueueRoutes(redisService));
+  app.use('/api/audit', createAuditRoutes(auditService));
 
   const clientDistPath = path.join(__dirname, '../client/dist');
   app.use(express.static(clientDistPath));
