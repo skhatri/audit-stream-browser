@@ -1,4 +1,3 @@
-import * as cron from 'node-cron';
 import { v4 as uuidv4 } from 'uuid';
 import { Status, QueueObject, Outcome, isTerminalStatus } from '../models';
 import { RedisService } from './RedisService';
@@ -6,41 +5,64 @@ import { logger } from '../utils';
 
 export class SchedulerService {
   private redisService: RedisService;
-  private insertTask: cron.ScheduledTask | null = null;
-  private updateTask: cron.ScheduledTask | null = null;
+  private insertTimeout: NodeJS.Timeout | null = null;
+  private updateTimeout: NodeJS.Timeout | null = null;
+  private isRunning: boolean = false;
 
   constructor(redisService: RedisService) {
     this.redisService = redisService;
   }
 
   start(): void {
-    this.insertTask = cron.schedule('* * * * *', async () => {
+    this.isRunning = true;
+    this.scheduleNextInsert();
+    this.scheduleNextUpdate();
+    logger.info(`Scheduler started - inserting records every 30-50 seconds, updating every 15-30 seconds`);
+  }
+
+  private scheduleNextInsert(): void {
+    if (!this.isRunning) return;
+    
+    const minSeconds = 30;
+    const maxSeconds = 50;
+    const randomDelay = (Math.random() * (maxSeconds - minSeconds) + minSeconds) * 1000;
+    
+    this.insertTimeout = setTimeout(async () => {
       try {
         await this.insertRandomRecord();
       } catch (error) {
         logger.error('Error in insert task:', error);
       }
-    });
+      this.scheduleNextInsert();
+    }, randomDelay);
+  }
 
-    this.updateTask = cron.schedule('*/10 * * * * *', async () => {
+  private scheduleNextUpdate(): void {
+    if (!this.isRunning) return;
+    
+    const minSeconds = 15;
+    const maxSeconds = 30;
+    const randomDelay = (Math.random() * (maxSeconds - minSeconds) + minSeconds) * 1000;
+    
+    this.updateTimeout = setTimeout(async () => {
       try {
-        await this.updateRandomRecords();
+        await this.updateSingleRecord();
       } catch (error) {
         logger.error('Error in update task:', error);
       }
-    });
-
-    logger.info('Scheduler started - inserting records every minute, updating every 10 seconds');
+      this.scheduleNextUpdate();
+    }, randomDelay);
   }
 
   stop(): void {
-    if (this.insertTask) {
-      this.insertTask.stop();
-      this.insertTask = null;
+    this.isRunning = false;
+    if (this.insertTimeout) {
+      clearTimeout(this.insertTimeout);
+      this.insertTimeout = null;
     }
-    if (this.updateTask) {
-      this.updateTask.stop();
-      this.updateTask = null;
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
     }
     logger.info('Scheduler stopped');
   }
@@ -66,7 +88,7 @@ export class SchedulerService {
     logger.info(`Inserted new record: ${queueObject.objectId} with ${records} records`);
   }
 
-  private async updateRandomRecords(): Promise<void> {
+  private async updateSingleRecord(): Promise<void> {
     const objects = await this.redisService.getQueueObjects(50);
     const nonTerminalObjects = objects.filter(obj => !isTerminalStatus(obj.status));
     
@@ -74,22 +96,19 @@ export class SchedulerService {
       return;
     }
 
-    const numToUpdate = Math.min(3, nonTerminalObjects.length);
-    const shuffled = nonTerminalObjects.sort(() => 0.5 - Math.random());
-    const toUpdate = shuffled.slice(0, numToUpdate);
+    const randomIndex = Math.floor(Math.random() * nonTerminalObjects.length);
+    const obj = nonTerminalObjects[randomIndex];
 
-    for (const obj of toUpdate) {
-      const nextStatus = this.getNextStatus(obj.status);
-      const outcome = isTerminalStatus(nextStatus) ? this.getRandomOutcome() : undefined;
+    const nextStatus = this.getNextStatus(obj.status);
+    const outcome = this.getOutcomeForStatus(nextStatus);
 
-      await this.redisService.updateQueueObject(obj.objectId, {
-        status: nextStatus,
-        updated: new Date(),
-        outcome
-      });
+    await this.redisService.updateQueueObject(obj.objectId, {
+      status: nextStatus,
+      updated: new Date(),
+      outcome
+    });
 
-      logger.debug(`Updated ${obj.objectId}: ${obj.status} -> ${nextStatus}${outcome ? ` (${outcome})` : ''}`);
-    }
+    logger.debug(`Updated ${obj.objectId}: ${obj.status} -> ${nextStatus}${outcome ? ` (${outcome})` : ''}`);
   }
 
   private getNextStatus(currentStatus: Status): Status {
@@ -106,7 +125,19 @@ export class SchedulerService {
     return possibleNext[Math.floor(Math.random() * possibleNext.length)];
   }
 
-  private getRandomOutcome(): Outcome {
-    return Math.random() > 0.2 ? Outcome.SUCCESS : Outcome.FAILURE;
+  private getOutcomeForStatus(status: Status): Outcome | undefined {
+    switch (status) {
+      case Status.INVALID:
+        return Outcome.FAILURE;
+      case Status.COMPLETE:
+        return Outcome.SUCCESS;
+      case Status.RECEIVED:
+      case Status.VALIDATING:
+      case Status.ENRICHING:
+      case Status.PROCESSING:
+        return undefined;
+      default:
+        return undefined;
+    }
   }
 }

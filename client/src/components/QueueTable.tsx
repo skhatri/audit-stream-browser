@@ -5,6 +5,8 @@ import { QueueObject, Status, Outcome } from '../types';
 interface QueueTableProps {
   data: QueueObject[];
   isLoading: boolean;
+  newRecordIds?: Set<string>;
+  updatedRecordIds?: Set<string>;
 }
 
 const StatusBadge = ({ status }: { status: Status }) => {
@@ -62,7 +64,7 @@ const LoadingRow = () => (
   </tr>
 );
 
-export const QueueTable = ({ data, isLoading }: QueueTableProps) => {
+export const QueueTable = ({ data, isLoading, newRecordIds = new Set(), updatedRecordIds = new Set() }: QueueTableProps) => {
   return (
     <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
       <table className="min-w-full divide-y divide-gray-300">
@@ -100,28 +102,43 @@ export const QueueTable = ({ data, isLoading }: QueueTableProps) => {
               </td>
             </tr>
           ) : (
-            data.map((object) => (
-              <tr key={object.objectId} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                  {object.objectId.slice(0, 8)}...
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {format(new Date(object.created), 'MMM dd, HH:mm:ss')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {format(new Date(object.updated), 'MMM dd, HH:mm:ss')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <StatusBadge status={object.status} />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {object.records}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <OutcomeBadge outcome={object.outcome} />
-                </td>
-              </tr>
-            ))
+            data.map((object) => {
+              const isNew = newRecordIds.has(object.objectId);
+              const isUpdated = updatedRecordIds.has(object.objectId);
+              
+              let animationClass = 'hover:bg-gray-50';
+              if (isNew) {
+                animationClass = 'new-record';
+              } else if (isUpdated) {
+                animationClass = 'updated-record';
+              }
+              
+              return (
+                <tr 
+                  key={object.objectId} 
+                  className={`transition-colors duration-200 ${animationClass}`}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                    {object.objectId.slice(0, 8)}...
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {format(new Date(object.created), 'MMM dd, HH:mm:ss')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {format(new Date(object.updated), 'MMM dd, HH:mm:ss')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <StatusBadge status={object.status} />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {object.records}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <OutcomeBadge outcome={object.outcome} />
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

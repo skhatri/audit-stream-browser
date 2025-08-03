@@ -5,7 +5,7 @@ import { Header } from './Header';
 import { useQueueObjects } from '../hooks/useQueue';
 
 export const Dashboard = () => {
-  const { data, isLoading, error } = useQueueObjects(100);
+  const { data, isLoading, error, newRecordIds, updatedRecordIds } = useQueueObjects(100);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -32,7 +32,9 @@ export const Dashboard = () => {
                 
                 <QueueTable 
                   data={data?.data || []} 
-                  isLoading={isLoading} 
+                  isLoading={isLoading}
+                  newRecordIds={newRecordIds}
+                  updatedRecordIds={updatedRecordIds}
                 />
               </div>
             </div>

@@ -82,7 +82,13 @@ export class RedisService {
         }
       }
 
-      return objects.reverse();
+      return objects.sort((a, b) => {
+        const updatedDiff = new Date(b.updated).getTime() - new Date(a.updated).getTime();
+        if (updatedDiff !== 0) {
+          return updatedDiff;
+        }
+        return new Date(b.created).getTime() - new Date(a.created).getTime();
+      });
     } catch (error) {
       logger.error('Failed to get queue objects:', error);
       throw error;
