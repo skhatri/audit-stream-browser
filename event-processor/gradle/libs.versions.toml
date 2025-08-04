@@ -1,0 +1,30 @@
+[versions]
+flink = "1.19.2"
+kafka = "3.6.1"
+cassandra = "4.0.13"
+redis = "4.4.6"
+jackson = "2.16.1"
+slf4j = "2.0.9"
+logback = "1.4.14"
+junit = "5.10.1"
+
+[libraries]
+flink-streaming-java = { module = "org.apache.flink:flink-streaming-java", version.ref = "flink" }
+flink-clients = { module = "org.apache.flink:flink-clients", version.ref = "flink" }
+flink-connector-kafka = { module = "org.apache.flink:flink-connector-kafka", version = "3.0.2-1.18" }
+flink-connector-cassandra = { module = "org.apache.flink:flink-connector-cassandra", version = "3.1.0-1.17" }
+
+jedis = { module = "redis.clients:jedis", version.ref = "redis" }
+
+cassandra-driver-core = { module = "com.datastax.oss:java-driver-core", version.ref = "cassandra" }
+cassandra-driver-query-builder = { module = "com.datastax.oss:java-driver-query-builder", version.ref = "cassandra" }
+
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
+
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+flink-test-utils = { module = "org.apache.flink:flink-test-utils", version.ref = "flink" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }

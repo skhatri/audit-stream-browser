@@ -1,16 +1,71 @@
-export const logger = {
-  info: (message: string, ...args: any[]) => {
-    console.log(`[INFO] ${new Date().toISOString()} - ${message}`, ...args);
-  },
-  error: (message: string, ...args: any[]) => {
-    console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, ...args);
-  },
-  warn: (message: string, ...args: any[]) => {
-    console.warn(`[WARN] ${new Date().toISOString()} - ${message}`, ...args);
-  },
-  debug: (message: string, ...args: any[]) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug(`[DEBUG] ${new Date().toISOString()} - ${message}`, ...args);
-    }
+import winston from 'winston';
+import path from 'path';
+
+const logLevel = process.env.LOG_LEVEL || 'info';
+const logDir = process.env.LOG_DIR || './logs';
+
+const createLogger = () => {
+  const logger = winston.createLogger({
+    level: logLevel,
+    format: winston.format.combine(
+      winston.format.timestamp({
+        format: 'YYYY-MM-DD HH:mm:ss'
+      }),
+      winston.format.errors({ stack: true }),
+      winston.format.json(),
+      winston.format.printf(({ timestamp, level, message, ...meta }) => {
+        let metaString = '';
+        if (Object.keys(meta).length > 0) {
+          metaString = ' ' + JSON.stringify(meta);
+        }
+        return `[${level.toUpperCase()}] ${timestamp} - ${message}${metaString}`;
+      })
+    ),
+    transports: [
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.simple()
+        )
+      }),
+      new winston.transports.File({
+        filename: path.join(logDir, 'paydash-error.log'),
+        level: 'error',
+        maxsize: 100 * 1024 * 1024, // 100MB
+        maxFiles: 5,
+        tailable: true
+      }),
+      new winston.transports.File({
+        filename: path.join(logDir, 'paydash-application.log'),
+        maxsize: 100 * 1024 * 1024, // 100MB
+        maxFiles: 10,
+        tailable: true
+      })
+    ],
+    exceptionHandlers: [
+      new winston.transports.Console(),
+      new winston.transports.File({
+        filename: path.join(logDir, 'paydash-exceptions.log')
+      })
+    ],
+    rejectionHandlers: [
+      new winston.transports.Console(),
+      new winston.transports.File({
+        filename: path.join(logDir, 'paydash-rejections.log')
+      })
+    ]
+  });
+
+  if (process.env.NODE_ENV === 'production') {
+    logger.add(new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+      )
+    }));
   }
+
+  return logger;
 };
+
+export const logger = createLogger();

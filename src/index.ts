@@ -1,5 +1,5 @@
 import { createApp } from './app';
-import { RedisService, SchedulerService, AuditService } from './services';
+import { RedisService, AuditService, CassandraService } from './services';
 import { logger } from './utils';
 
 const PORT = process.env.PORT || 3001;
@@ -12,19 +12,17 @@ async function startServer() {
     const auditService = new AuditService();
     await auditService.connect();
 
-    const app = createApp(redisService, auditService);
+    const cassandraService = new CassandraService();
+    await cassandraService.connect();
+
+    const app = createApp(redisService, auditService, cassandraService);
     
     const server = app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`);
+      logger.info(`Server running on port ${PORT} - Event-driven architecture with Cassandra`);
     });
-
-    const schedulerService = new SchedulerService(redisService, auditService);
-    schedulerService.start();
 
     const gracefulShutdown = async (signal: string) => {
       logger.info(`Received ${signal}. Starting graceful shutdown...`);
-      
-      schedulerService.stop();
       
       server.close(async () => {
         logger.info('HTTP server closed');
@@ -32,7 +30,8 @@ async function startServer() {
         try {
           await Promise.all([
             redisService.disconnect(),
-            auditService.disconnect()
+            auditService.disconnect(),
+            cassandraService.disconnect()
           ]);
           logger.info('Database connections closed');
           process.exit(0);

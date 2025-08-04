@@ -126,13 +126,14 @@ export const useQueueObjects = (limit?: number) => {
     queryFn: () => queueApi.getQueueObjects(limit),
     refetchInterval: false,
     staleTime: 300000,
-    enabled: !isConnectedRef.current,
-    onSuccess: (data) => {
-      if (data?.data) {
-        previousDataRef.current = data.data;
-      }
-    }
+    enabled: !isConnectedRef.current
   });
+
+  useEffect(() => {
+    if (query.data?.data) {
+      previousDataRef.current = query.data.data;
+    }
+  }, [query.data]);
 
   return {
     ...query,

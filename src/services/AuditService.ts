@@ -1,11 +1,9 @@
 import { createClient, RedisClientType } from 'redis';
-import { AuditEntry, AuditEntryCreate, AuditAction } from '../models';
+import { AuditEntry, AuditAction } from '../models';
 import { logger } from '../utils';
-import { v4 as uuidv4 } from 'uuid';
 
 export class AuditService {
   private client: RedisClientType;
-  private readonly AUDIT_QUEUE_KEY = 'paydash:audit:queue';
   private readonly AUDIT_OBJECT_KEY_PREFIX = 'paydash:audit:object:';
   private readonly AUDIT_ENTRY_KEY_PREFIX = 'paydash:audit:entry:';
 
@@ -18,7 +16,7 @@ export class AuditService {
     });
 
     this.client.on('connect', () => {
-      logger.info('Audit service connected to Redis');
+      logger.info('Audit service connected to Redis (READ-ONLY)');
     });
   }
 
@@ -39,43 +37,7 @@ export class AuditService {
     }
   }
 
-  async addAuditEntry(auditData: AuditEntryCreate): Promise<void> {
-    const auditId = uuidv4();
-    const timestamp = new Date();
-    
-    const auditEntry: AuditEntry = {
-      auditId,
-      timestamp,
-      ...auditData
-    };
 
-    try {
-      const auditEntryKey = `${this.AUDIT_ENTRY_KEY_PREFIX}${auditId}`;
-      
-      await this.client.hSet(auditEntryKey, {
-        auditId: auditEntry.auditId,
-        objectId: auditEntry.objectId,
-        objectType: auditEntry.objectType,
-        action: auditEntry.action,
-        previousStatus: auditEntry.previousStatus || '',
-        newStatus: auditEntry.newStatus,
-        previousOutcome: auditEntry.previousOutcome || '',
-        newOutcome: auditEntry.newOutcome || '',
-        timestamp: auditEntry.timestamp.toISOString(),
-        metadata: auditEntry.metadata || ''
-      });
-
-      await this.client.lPush(this.AUDIT_QUEUE_KEY, auditId);
-      
-      const objectAuditKey = `${this.AUDIT_OBJECT_KEY_PREFIX}${auditEntry.objectType}:${auditEntry.objectId}`;
-      await this.client.lPush(objectAuditKey, auditId);
-      
-      logger.debug(`Added audit entry ${auditId} for object ${auditEntry.objectId}`);
-    } catch (error) {
-      logger.error('Failed to add audit entry:', error);
-      throw error;
-    }
-  }
 
   async getAuditEntriesForObject(objectType: string, objectId: string, limit: number = 50): Promise<AuditEntry[]> {
     try {
@@ -113,7 +75,7 @@ export class AuditService {
 
   async getAllAuditEntries(limit: number = 100): Promise<AuditEntry[]> {
     try {
-      const auditIds = await this.client.lRange(this.AUDIT_QUEUE_KEY, 0, limit - 1);
+      const auditIds = await this.client.lRange('paydash:audit:queue', 0, limit - 1);
       const entries: AuditEntry[] = [];
       
       for (const auditId of auditIds) {
@@ -143,13 +105,5 @@ export class AuditService {
     }
   }
 
-  async clearAuditQueue(): Promise<void> {
-    try {
-      await this.client.del(this.AUDIT_QUEUE_KEY);
-      logger.info('Audit queue cleared');
-    } catch (error) {
-      logger.error('Failed to clear audit queue:', error);
-      throw error;
-    }
-  }
+
 }

@@ -5,7 +5,8 @@ import { Header } from './Header';
 import { useQueueObjects } from '../hooks/useQueue';
 
 export const Dashboard = () => {
-  const { data, isLoading, error, newRecordIds, updatedRecordIds } = useQueueObjects(100);
+  const queueData = useQueueObjects(100);
+  const { data, isLoading, error, newRecordIds, updatedRecordIds } = queueData;
 
   return (
     <div className="min-h-screen bg-gray-50">

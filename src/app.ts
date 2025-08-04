@@ -5,10 +5,11 @@ import path from 'path';
 import { corsMiddleware } from './middleware/cors';
 import { createQueueRoutes } from './routes/queue';
 import { createAuditRoutes } from './routes/audit';
-import { RedisService, AuditService } from './services';
+import { createMonitoringRoutes } from './routes/monitoring';
+import { RedisService, AuditService, CassandraService } from './services';
 import { logger } from './utils';
 
-export const createApp = (redisService: RedisService, auditService: AuditService): express.Application => {
+export const createApp = (redisService: RedisService, auditService: AuditService, cassandraService: CassandraService): express.Application => {
   const app = express();
 
   app.use(helmet());
@@ -22,7 +23,8 @@ export const createApp = (redisService: RedisService, auditService: AuditService
   });
 
   app.use('/api/queue', createQueueRoutes(redisService));
-  app.use('/api/audit', createAuditRoutes(auditService));
+  app.use('/api/audit', createAuditRoutes(cassandraService));
+  app.use('/api/monitoring', createMonitoringRoutes());
 
   const clientDistPath = path.join(__dirname, '../client/dist');
   app.use(express.static(clientDistPath));

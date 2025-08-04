@@ -1,16 +1,16 @@
 import { Router, Request, Response } from 'express';
-import { AuditService } from '../services';
+import { CassandraService } from '../services';
 import { logger } from '../utils';
 
 const router = Router();
 
-export const createAuditRoutes = (auditService: AuditService): Router => {
+export const createAuditRoutes = (cassandraService: CassandraService): Router => {
   router.get('/object/:objectType/:objectId', async (req: Request, res: Response) => {
     try {
       const { objectType, objectId } = req.params;
       const limit = parseInt(req.query.limit as string) || 50;
       
-      const auditEntries = await auditService.getAuditEntriesForObject(objectType, objectId, limit);
+      const auditEntries = await cassandraService.getAuditEntriesByObjectId(objectType, objectId);
       
       res.json({
         success: true,
@@ -31,7 +31,7 @@ export const createAuditRoutes = (auditService: AuditService): Router => {
   router.get('/', async (req: Request, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 100;
-      const auditEntries = await auditService.getAllAuditEntries(limit);
+      const auditEntries = await cassandraService.getAllAuditEntries(limit);
       
       res.json({
         success: true,
@@ -63,7 +63,7 @@ export const createAuditRoutes = (auditService: AuditService): Router => {
       
       try {
         const limit = parseInt(req.query.limit as string) || 100;
-        const auditEntries = await auditService.getAllAuditEntries(limit);
+        const auditEntries = await cassandraService.getAllAuditEntries(limit);
         
         const data = {
           success: true,

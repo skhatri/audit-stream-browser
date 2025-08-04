@@ -57,10 +57,9 @@ export const createQueueRoutes = (redisService: RedisService): Router => {
 
   router.delete('/clear', async (req: Request, res: Response) => {
     try {
-      await redisService.clearQueue();
-      res.json({
-        success: true,
-        message: 'Queue cleared successfully'
+      res.status(405).json({
+        success: false,
+        message: 'Queue clear operation disabled - data is now managed by Event-Generator'
       });
     } catch (error) {
       logger.error('Error clearing queue:', error);
