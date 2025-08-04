@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: event-generator
+  kafka:
+    bootstrap-servers: localhost:9092
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  kafka:
+    topic:
+      batch-events: batch-events
+  batch:
+    creation:
+      enabled: true
+      interval: 45000  # 45 seconds
+    update:
+      enabled: true
+      interval: 25000  # 25 seconds
+
+logging:
+  level:
+    com.paydash.eventgenerator: INFO
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
