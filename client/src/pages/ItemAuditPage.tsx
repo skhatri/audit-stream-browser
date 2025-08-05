@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import JsonMetadata from '../components/JsonMetadata';
 
 interface ItemAuditEntry {
   auditId: string;
@@ -276,14 +277,7 @@ export const ItemAuditPage: React.FC = () => {
                             {formatTimestamp(item.timestamp)}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-900">
-                            {item.metadata && (
-                              <details className="cursor-pointer">
-                                <summary className="text-blue-600 hover:text-blue-800">View</summary>
-                                <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-w-xs">
-                                  {JSON.stringify(JSON.parse(item.metadata), null, 2)}
-                                </pre>
-                              </details>
-                            )}
+                            <JsonMetadata metadata={item.metadata} maxHeight="max-h-40" />
                           </td>
                         </tr>
                       ))}

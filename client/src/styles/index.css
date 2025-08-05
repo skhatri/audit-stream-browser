@@ -53,6 +53,31 @@
     @apply bg-red-100 text-red-800;
   }
 
+  /* JSON Syntax Highlighting */
+  .json-syntax {
+    color: #e5e7eb; /* Base text color */
+  }
+  
+  .json-syntax .json-key {
+    color: #60a5fa; /* Blue for keys */
+  }
+  
+  .json-syntax .json-string {
+    color: #34d399; /* Green for strings */
+  }
+  
+  .json-syntax .json-number {
+    color: #f59e0b; /* Amber for numbers */
+  }
+  
+  .json-syntax .json-boolean {
+    color: #f472b6; /* Pink for booleans */
+  }
+  
+  .json-syntax .json-null {
+    color: #9ca3af; /* Gray for null */
+  }
+
   .new-record {
     @apply bg-green-50 border-l-4 border-green-400;
     animation: slideInFromTop 0.6s ease-out forwards, fadeGreenHighlight 3s ease-out forwards;

@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { AuditEntry, AuditAction, Status, Outcome } from '../types';
+import JsonMetadata from './JsonMetadata';
 
 interface AuditTableProps {
   auditEntries: AuditEntry[];
@@ -158,8 +159,8 @@ export const AuditTable = ({ auditEntries, isLoading }: AuditTableProps) => {
                   <td className="px-4 py-2 whitespace-nowrap">
                     <ActionBadge action={entry.action} />
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                    {entry.metadata || '-'}
+                  <td className="px-4 py-2 text-sm text-gray-500">
+                    <JsonMetadata metadata={entry.metadata} maxHeight="max-h-32" />
                   </td>
                 </tr>
               ))

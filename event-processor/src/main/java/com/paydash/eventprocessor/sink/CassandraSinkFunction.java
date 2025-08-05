@@ -148,12 +148,29 @@ public class CassandraSinkFunction extends RichSinkFunction<BatchEvent> {
         String previousStatus = "OBJECT_CREATED".equals(event.getEventType()) ? null : null; // Would need state tracking
         String previousOutcome = "OBJECT_CREATED".equals(event.getEventType()) ? null : null; // Would need state tracking
         
+        // For batch objects, parent_id and parent_type are same as object
+        // For item objects, parent info should come from metadata (if available)
+        String parentId = payload.getObjectId();
+        String parentType = payload.getObjectType();
+        
+        if ("item".equals(payload.getObjectType()) && payload.getMetadata() != null) {
+            // For items, use parent info from metadata if available
+            String metadataParentId = payload.getMetadata().get("parent_id");
+            String metadataParentType = payload.getMetadata().get("parent_type");
+            if (metadataParentId != null) {
+                parentId = metadataParentId;
+            }
+            if (metadataParentType != null) {
+                parentType = metadataParentType;
+            }
+        }
+        
         BoundStatement statement = auditEntryInsert.bind(
             UUID.randomUUID(),
             payload.getObjectId(),
             payload.getObjectType(),
-            payload.getObjectId(), // parent_id same as object_id for batch objects
-            payload.getObjectType(), // parent_type same as object_type
+            parentId,
+            parentType,
             action,
             previousStatus,
             payload.getStatus(),
