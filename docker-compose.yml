@@ -1,8 +1,9 @@
-version: '3.8'
-
 services:
   redis:
+    profiles:
+    - infra
     image: redis:7-alpine
+    container_name: redis
     ports:
       - "6379:6379"
     volumes:
@@ -17,38 +18,12 @@ services:
     networks:
       - paydash-network
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
-    env_file:
-      - ./config/environments/development.env
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - CASSANDRA_HOST=cassandra:9042
-      - KAFKA_BROKERS=kafka:9092
-      - NODE_ENV=development
-      - LOG_LEVEL=debug
-      - ENABLE_METRICS=true
-      - HEALTH_CHECK_INTERVAL=30
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - ./config:/app/config
-      - ./logs:/app/logs
-      - /app/client/node_modules
-    restart: unless-stopped
-    networks:
-      - paydash-network
-
   kafka:
+    profiles:
+    - infra
     image: confluentinc/cp-kafka:7.5.0
     hostname: kafka
+    container_name: kafka
     ports:
       - "9092:9092"
       - "9101:9101"
@@ -79,7 +54,10 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    profiles:
+    - infra
     hostname: zookeeper
+    container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
@@ -89,9 +67,27 @@ services:
     networks:
       - paydash-network
 
+
+  kafka-ui:
+    container_name: kafka-ui
+    profiles:
+    - infra    
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 3090:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    volumes:
+      - ./kui.yaml:/etc/kafkaui/dynamic_config.yaml
+    networks:
+      - paydash-network
+
   cassandra:
     image: cassandra:4.1
+    profiles:
+    - infra
     hostname: cassandra
+    container_name: cassandra
     ports:
       - "9042:9042"
     environment:
@@ -116,6 +112,9 @@ services:
 
   kafka-init:
     image: confluentinc/cp-kafka:7.5.0
+    profiles:
+    - infra
+    container_name: kafka-init
     depends_on:
       zookeeper:
         condition: service_started
@@ -137,6 +136,9 @@ services:
     restart: "no"
     networks:
       - paydash-network
+
+
+
 
 networks:
   paydash-network:

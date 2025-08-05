@@ -22,7 +22,7 @@ export const createApp = (redisService: RedisService, auditService: AuditService
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
   });
 
-  app.use('/api/queue', createQueueRoutes(redisService));
+  app.use('/api/queue', createQueueRoutes(redisService, cassandraService));
   app.use('/api/audit', createAuditRoutes(cassandraService));
   app.use('/api/monitoring', createMonitoringRoutes());
 

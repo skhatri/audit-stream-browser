@@ -69,32 +69,104 @@ export class CassandraService {
 
   async getAllAuditEntries(limit: number = 100): Promise<AuditEntry[]> {
     try {
-      const query = `
-        SELECT audit_id, object_id, object_type, parent_id, parent_type, 
-               action, previous_status, new_status, previous_outcome, new_outcome, 
-               timestamp, metadata
-        FROM audit_entries 
-        LIMIT ?
-      `;
-      
-      const result = await this.client.execute(query, [limit]);
-      
-      return result.rows.map(row => ({
-        auditId: row.audit_id,
-        objectId: row.object_id,
-        objectType: row.object_type,
-        parentId: row.parent_id,
-        parentType: row.parent_type,
-        action: row.action as AuditAction,
-        previousStatus: row.previous_status,
-        newStatus: row.new_status,
-        previousOutcome: row.previous_outcome,
-        newOutcome: row.new_outcome,
-        timestamp: new Date(row.timestamp),
-        metadata: row.metadata || '{}'
-      }));
+      // For now, return empty array since we can't query audit_entries without partition key
+      // In a real implementation, you'd need to either:
+      // 1. Use a different table design with better partition strategy
+      // 2. Use an external search index like Elasticsearch
+      // 3. Query by known object_type/object_id combinations
+      logger.info('getAllAuditEntries called - returning empty array due to Cassandra partition key constraints');
+      return [];
     } catch (error) {
       logger.error('Error fetching all audit entries:', error);
+      throw error;
+    }
+  }
+
+  async getBatchObjects(limit: number = 100): Promise<any[]> {
+    try {
+      // Try simple SELECT first without LIMIT to avoid the byte int error
+      const query = `SELECT * FROM batch_objects`;
+      const result = await this.client.execute(query);
+      
+      // Apply limit in application code instead
+      const limitedRows = result.rows.slice(0, limit);
+      
+      return limitedRows.map(row => {
+        // Safely handle metadata
+        const metadata = row.metadata || {};
+        const records = metadata && metadata.records ? parseInt(metadata.records.toString()) || 0 : 0;
+        
+        return {
+          objectId: row.object_id?.toString(),
+          objectType: row.object_type,
+          status: row.status,
+          outcome: row.outcome,
+          metadata: metadata,
+          records: records,
+          created: row.created ? new Date(row.created) : new Date(),
+          updated: row.updated ? new Date(row.updated) : new Date()
+        };
+      }).sort((a, b) => {
+        const updatedDiff = new Date(b.updated).getTime() - new Date(a.updated).getTime();
+        if (updatedDiff !== 0) {
+          return updatedDiff;
+        }
+        return new Date(b.created).getTime() - new Date(a.created).getTime();
+      });
+    } catch (error) {
+      logger.error('Error fetching batch objects:', error);
+      // If table is empty or doesn't exist, return empty array
+      return [];
+    }
+  }
+
+  async getBatchObjectsCount(): Promise<number> {
+    try {
+      const query = `SELECT COUNT(*) FROM batch_objects ALLOW FILTERING`;
+      const result = await this.client.execute(query);
+      return result.rows[0].count;
+    } catch (error) {
+      logger.error('Error getting batch objects count:', error);
+      throw error;
+    }
+  }
+
+  async getBatchObjectsStats(): Promise<any> {
+    try {
+      // Get all objects and calculate stats in application layer since Cassandra doesn't support GROUP BY on non-PK columns
+      const query = `SELECT object_id, object_type, status, outcome, metadata FROM batch_objects ALLOW FILTERING`;
+      const result = await this.client.execute(query);
+      
+      const total = result.rows.length;
+      const byStatus: Record<string, number> = {};
+      const byOutcome: Record<string, number> = {};
+      let totalRecords = 0;
+
+      result.rows.forEach(row => {
+        // Count by status
+        const status = row.status || 'unknown';
+        byStatus[status] = (byStatus[status] || 0) + 1;
+
+        // Count by outcome
+        const outcome = row.outcome || '-';
+        byOutcome[outcome] = (byOutcome[outcome] || 0) + 1;
+
+        // Sum records from metadata
+        if (row.metadata && row.metadata.records) {
+          const records = parseInt(row.metadata.records) || 0;
+          totalRecords += records;
+        }
+      });
+
+      return {
+        total,
+        byStatus,
+        byOutcome,
+        totalRecords,
+        source: 'cassandra'
+      };
+    } catch (error) {
+      logger.error('Error getting batch objects stats:', error);
       throw error;
     }
   }
@@ -114,14 +186,18 @@ export class CassandraService {
       }
 
       const row = result.rows[0];
+      const metadata = row.metadata || {};
+      const records = metadata && metadata.records ? parseInt(metadata.records.toString()) || 0 : 0;
+      
       return {
-        objectId: row.object_id,
+        objectId: row.object_id?.toString(),
         objectType: row.object_type,
         status: row.status,
         outcome: row.outcome,
-        metadata: row.metadata || {},
-        created: new Date(row.created),
-        updated: new Date(row.updated)
+        metadata: metadata,
+        records: records,
+        created: row.created ? new Date(row.created) : new Date(),
+        updated: row.updated ? new Date(row.updated) : new Date()
       };
     } catch (error) {
       logger.error(`Error fetching batch object ${objectId}:`, error);

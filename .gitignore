@@ -3,6 +3,8 @@ node_modules
 tmp
 .gradle
 build
+bin
+out
 .idea
 *.iml
 *.iws

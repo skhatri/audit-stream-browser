@@ -1,4 +1,4 @@
-# Paydash - Payment Processing Dashboard
+# pdash - Batch Processing Dashboard
 
 A real-time dashboard for monitoring payment processing queue status built with TypeScript, React, Express.js, and Redis.
 
@@ -7,7 +7,7 @@ A real-time dashboard for monitoring payment processing queue status built with 
 This is a full-stack TypeScript application with the following structure:
 
 ```
-paydash/
+pdash/
 ├── src/                    # Backend API (Express.js)
 │   ├── models/            # Data models and types
 │   ├── services/          # Business logic (Redis, Scheduler)

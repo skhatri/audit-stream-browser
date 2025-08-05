@@ -1,56 +1,43 @@
 import { Router, Request, Response } from 'express';
-import { RedisService } from '../services';
+import { RedisService, CassandraService } from '../services';
 import { logger } from '../utils';
 
 const router = Router();
 
-export const createQueueRoutes = (redisService: RedisService): Router => {
+export const createQueueRoutes = (redisService: RedisService, cassandraService: CassandraService): Router => {
   router.get('/', async (req: Request, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 100;
-      const objects = await redisService.getQueueObjects(limit);
+      const objects = await cassandraService.getBatchObjects(limit);
       
       res.json({
         success: true,
         data: objects,
-        count: objects.length
+        count: objects.length,
+        source: 'cassandra'
       });
     } catch (error) {
-      logger.error('Error fetching queue objects:', error);
+      logger.error('Error fetching queue objects from Cassandra:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch queue objects'
+        message: 'Failed to fetch queue objects from Cassandra'
       });
     }
   });
 
   router.get('/stats', async (req: Request, res: Response) => {
     try {
-      const objects = await redisService.getQueueObjects(1000);
-      const stats = {
-        total: objects.length,
-        byStatus: objects.reduce((acc, obj) => {
-          acc[obj.status] = (acc[obj.status] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        byOutcome: objects.reduce((acc, obj) => {
-          if (obj.outcome) {
-            acc[obj.outcome] = (acc[obj.outcome] || 0) + 1;
-          }
-          return acc;
-        }, {} as Record<string, number>),
-        totalRecords: objects.reduce((sum, obj) => sum + obj.records, 0)
-      };
+      const stats = await cassandraService.getBatchObjectsStats();
 
       res.json({
         success: true,
         data: stats
       });
     } catch (error) {
-      logger.error('Error fetching queue stats:', error);
+      logger.error('Error fetching queue stats from Cassandra:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch queue stats'
+        message: 'Failed to fetch queue stats from Cassandra'
       });
     }
   });
