@@ -57,6 +57,8 @@ export interface AuditEntry {
   newOutcome?: Outcome;
   timestamp: string;
   metadata?: string;
+  parentId?: string;
+  parentType?: string;
 }
 
 export interface AuditResponse {

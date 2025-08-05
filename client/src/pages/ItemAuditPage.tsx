@@ -38,8 +38,24 @@ export const ItemAuditPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchItemAudits = async () => {
-    if (!parentId.trim()) {
+  // Check URL parameters on mount and auto-populate search
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const objectType = urlParams.get('object_type');
+    const objectId = urlParams.get('object_id');
+    
+    // If we have batch audit URL parameters, populate and auto-search
+    if (objectType === 'batch' && objectId) {
+      setParentId(objectId);
+      // Auto-trigger search after state is set
+      setTimeout(() => {
+        fetchItemAuditsForId(objectId);
+      }, 100);
+    }
+  }, []);
+
+  const fetchItemAuditsForId = async (batchId: string) => {
+    if (!batchId.trim()) {
       setError('Please enter a valid parent batch ID');
       return;
     }
@@ -48,7 +64,7 @@ export const ItemAuditPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/audit/items/parent/${encodeURIComponent(parentId.trim())}`);
+      const response = await fetch(`/api/audit/items/parent/${encodeURIComponent(batchId.trim())}`);
       const data: ItemAuditResponse = await response.json();
 
       if (data.success) {
@@ -69,6 +85,10 @@ export const ItemAuditPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchItemAudits = async () => {
+    fetchItemAuditsForId(parentId);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -122,9 +142,6 @@ export const ItemAuditPage: React.FC = () => {
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="border-b border-gray-200 pb-5">
-            <h1 className="text-3xl font-bold leading-tight text-gray-900">
-              Item Audit Tracker
-            </h1>
             <p className="mt-2 text-sm text-gray-600">
               Track individual audit items by entering a parent batch ID
             </p>
@@ -149,9 +166,24 @@ export const ItemAuditPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-6 py-2 rounded-md font-medium transition-colors"
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-6 py-2 rounded-md font-medium transition-colors flex items-center space-x-2"
               >
-                {loading ? 'Searching...' : 'Search Items'}
+                {loading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Searching...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <span>Search</span>
+                  </>
+                )}
               </button>
             </form>
           </div>

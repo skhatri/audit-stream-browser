@@ -7,11 +7,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🚀 Starting Paydash Development Environment...${NC}"
+echo -e "${BLUE}🚀 Starting audit-stream Development Environment...${NC}"
 
 # Kill any processes running on our ports
 echo -e "${YELLOW}🔪 Cleaning up existing processes...${NC}"
-psrm.sh "APP=paydash" 2>/dev/null || true
+psrm.sh "APP=audit-stream" 2>/dev/null || true
 psrm.sh "vite" 2>/dev/null || true
 psrm.sh "nodemon" 2>/dev/null || true
 
@@ -94,10 +94,10 @@ npm run install:all
 
 # Start Client and Server
 echo -e "${BLUE}🌐 Starting Client and Server...${NC}"
-APP=paydash RECORD_INSERT_INTERVAL_SECONDS=10 npm run dev &
+APP=audit-stream RECORD_INSERT_INTERVAL_SECONDS=10 npm run dev &
 
 echo -e "\n${GREEN}✅ All services started successfully!${NC}"
-echo -e "${BLUE}🌐 Paydash UI: http://localhost:5173${NC}"
-echo -e "${BLUE}🔧 Paydash API: http://localhost:3001/api${NC}"
+echo -e "${BLUE}🌐 AuditStream UI: http://localhost:5173${NC}"
+echo -e "${BLUE}🔧 AuditStream API: http://localhost:3001/api${NC}"
 echo -e "${YELLOW}📝 Logs are saved in ./logs/ directory${NC}"
 

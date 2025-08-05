@@ -1,5 +1,6 @@
 import { createApp } from './app';
 import { RedisService, AuditService, CassandraService } from './services';
+import { clickHouseService } from './services/ClickHouseService';
 import { logger } from './utils';
 
 const PORT = process.env.PORT || 3001;
@@ -14,6 +15,9 @@ async function startServer() {
 
     const cassandraService = new CassandraService();
     await cassandraService.connect();
+
+    // Connect to ClickHouse for metrics
+    await clickHouseService.connect();
 
     const app = createApp(redisService, auditService, cassandraService);
     
@@ -31,7 +35,8 @@ async function startServer() {
           await Promise.all([
             redisService.disconnect(),
             auditService.disconnect(),
-            cassandraService.disconnect()
+            cassandraService.disconnect(),
+            clickHouseService.disconnect()
           ]);
           logger.info('Database connections closed');
           process.exit(0);

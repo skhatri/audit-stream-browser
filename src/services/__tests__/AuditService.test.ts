@@ -91,9 +91,9 @@ describe('AuditService', () => {
 
       const entries = await auditService.getAuditEntriesForObject(objectType, objectId);
 
-      expect(mockLRange).toHaveBeenCalledWith('paydash:audit:object:payment:123', 0, 49);
-      expect(mockHGetAll).toHaveBeenCalledWith('paydash:audit:entry:audit1');
-      expect(mockHGetAll).toHaveBeenCalledWith('paydash:audit:entry:audit2');
+      expect(mockLRange).toHaveBeenCalledWith('audit-stream:audit:object:payment:123', 0, 49);
+      expect(mockHGetAll).toHaveBeenCalledWith('audit-stream:audit:entry:audit1');
+      expect(mockHGetAll).toHaveBeenCalledWith('audit-stream:audit:entry:audit2');
       expect(entries).toHaveLength(2);
       expect(entries[0].auditId).toBe('audit2');
       expect(entries[1].auditId).toBe('audit1');
@@ -136,9 +136,9 @@ describe('AuditService', () => {
 
       const entries = await auditService.getAllAuditEntries();
 
-      expect(mockLRange).toHaveBeenCalledWith('paydash:audit:queue', 0, 99);
-      expect(mockHGetAll).toHaveBeenCalledWith('paydash:audit:entry:audit1');
-      expect(mockHGetAll).toHaveBeenCalledWith('paydash:audit:entry:audit2');
+      expect(mockLRange).toHaveBeenCalledWith('audit-stream:audit:queue', 0, 99);
+      expect(mockHGetAll).toHaveBeenCalledWith('audit-stream:audit:entry:audit1');
+      expect(mockHGetAll).toHaveBeenCalledWith('audit-stream:audit:entry:audit2');
       expect(entries).toHaveLength(2);
     });
 

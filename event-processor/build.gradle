@@ -19,6 +19,7 @@ ext {
     kafkaVersion = '3.6.1'
     cassandraVersion = '4.17.0'
     redisVersion = '4.4.6'
+    clickhouseVersion = '0.4.6'
     jacksonVersion = '2.16.1'
 }
 
@@ -36,6 +37,10 @@ dependencies {
     // Cassandra driver (correct version)
     implementation "com.datastax.oss:java-driver-core:4.17.0"
     implementation "com.datastax.oss:java-driver-query-builder:4.17.0"
+    
+    // ClickHouse client
+    implementation "com.clickhouse:clickhouse-jdbc:${clickhouseVersion}"
+    implementation "com.clickhouse:clickhouse-http-client:${clickhouseVersion}"
     
     // JSON processing
     implementation "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"

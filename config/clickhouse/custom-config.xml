@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- Custom configuration for PayDash ClickHouse -->
+    
+    <!-- Allow connections from Docker network -->
+    <listen_host>0.0.0.0</listen_host>
+    
+    <!-- Logging -->
+    <logger>
+        <level>information</level>
+        <console>true</console>
+    </logger>
+    
+    <!-- Skip configuration checks for user-level settings -->
+    <skip_check_for_incorrect_settings>1</skip_check_for_incorrect_settings>
+</clickhouse>

@@ -1,7 +1,7 @@
 {
-  "name": "paydash",
+  "name": "audit-stream",
   "version": "1.0.0",
-  "description": "Paydash - Payment Processing Dashboard",
+  "description": "AuditStream - Event Processing Dashboard",
   "main": "dist/index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
@@ -21,6 +21,7 @@
     "clean": "rm -rf dist client/dist"
   },
   "dependencies": {
+    "@clickhouse/client": "^0.2.10",
     "@types/winston": "^2.4.4",
     "cassandra-driver": "^4.8.0",
     "cors": "^2.8.5",

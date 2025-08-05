@@ -46,6 +46,12 @@ public class RedisSinkFunction extends RichSinkFunction<BatchEvent> {
     public void invoke(BatchEvent event, Context context) throws Exception {
         try (Jedis jedis = jedisPool.getResource()) {
             BatchEvent.BatchPayload payload = event.getPayload();
+            
+            if (!"batch".equals(payload.getObjectType())) {
+                logger.debug("Skipping non-batch object: {} (type: {})", payload.getObjectId(), payload.getObjectType());
+                return;
+            }
+            
             String objectKey = "queue:object:" + payload.getObjectId();
             
             Map<String, String> queueObject = new HashMap<>();
@@ -65,7 +71,7 @@ public class RedisSinkFunction extends RichSinkFunction<BatchEvent> {
             double score = System.currentTimeMillis() / 1000.0;
             jedis.zadd("queue:objects", score, payload.getObjectId());
             
-            logger.debug("Successfully stored object in Redis: {}", payload.getObjectId());
+            logger.debug("Successfully stored batch object in Redis: {}", payload.getObjectId());
             
         } catch (Exception e) {
             logger.error("Error storing object in Redis: {}", event.getPayload().getObjectId(), e);

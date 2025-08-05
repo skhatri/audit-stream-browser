@@ -15,6 +15,9 @@ public class FlinkConfig {
     public static final String CASSANDRA_TABLE_BATCH_OBJECTS = "batch_objects";
     public static final String CASSANDRA_TABLE_AUDIT_ENTRIES = "audit_entries";
     
+    public static final String CLICKHOUSE_HOST = "localhost";
+    public static final int CLICKHOUSE_PORT = 8123;
+    
     public static final String CHECKPOINT_URI = "file:///tmp/flink-checkpoints";
     public static final long CHECKPOINT_INTERVAL = 10000; // 10 seconds
     

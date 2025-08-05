@@ -72,7 +72,6 @@ public class BatchEvent {
             this.updated = updated;
         }
         
-        // Getters and setters
         public String getObjectId() { return objectId; }
         public void setObjectId(String objectId) { this.objectId = objectId; }
         

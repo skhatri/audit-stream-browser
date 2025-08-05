@@ -6,6 +6,7 @@ import { corsMiddleware } from './middleware/cors';
 import { createQueueRoutes } from './routes/queue';
 import { createAuditRoutes } from './routes/audit';
 import { createMonitoringRoutes } from './routes/monitoring';
+import metricsRoutes from './routes/metrics';
 import { RedisService, AuditService, CassandraService } from './services';
 import { logger } from './utils';
 
@@ -25,6 +26,7 @@ export const createApp = (redisService: RedisService, auditService: AuditService
   app.use('/api/queue', createQueueRoutes(redisService, cassandraService));
   app.use('/api/audit', createAuditRoutes(cassandraService));
   app.use('/api/monitoring', createMonitoringRoutes());
+  app.use('/api/metrics', metricsRoutes);
 
   const clientDistPath = path.join(__dirname, '../client/dist');
   app.use(express.static(clientDistPath));

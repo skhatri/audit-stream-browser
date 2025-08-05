@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { AuditEntry, AuditAction, Status, Outcome } from '../types';
 import JsonMetadata from './JsonMetadata';
+import { AmountDisplay, CompanySummary, parseMetadata } from './MetadataDisplays';
 
 interface AuditTableProps {
   auditEntries: AuditEntry[];
@@ -55,19 +56,39 @@ const StatusBadge = ({ status }: { status?: Status }) => {
   }
 };
 
-const OutcomeBadge = ({ outcome }: { outcome?: Outcome }) => {
-  if (!outcome) return <span className="text-gray-400">-</span>;
-  
-  const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
-  
-  switch (outcome) {
-    case Outcome.SUCCESS:
-      return <span className={`${baseClasses} bg-green-100 text-green-800`}>{outcome}</span>;
-    case Outcome.FAILURE:
-      return <span className={`${baseClasses} bg-red-100 text-red-800`}>{outcome}</span>;
-    default:
-      return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{outcome}</span>;
+const OutcomeIcon = ({ outcome }: { outcome?: Outcome }) => {
+  if (!outcome || outcome === '-') {
+    return (
+      <div className="flex items-center justify-center">
+        <svg className="w-4 h-4 text-yellow-500 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    );
   }
+
+  if (outcome === Outcome.SUCCESS) {
+    return (
+      <div className="flex items-center justify-center">
+        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (outcome === Outcome.FAILURE) {
+    return (
+      <div className="flex items-center justify-center">
+        <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </div>
+    );
+  }
+
+  return <span className="text-gray-400 text-xs">-</span>;
 };
 
 const LoadingRow = () => (
@@ -91,6 +112,12 @@ const LoadingRow = () => (
       <div className="h-4 bg-gray-200 rounded w-16"></div>
     </td>
     <td className="px-4 py-2 whitespace-nowrap">
+      <div className="h-4 bg-gray-200 rounded w-20"></div>
+    </td>
+    <td className="px-4 py-2 whitespace-nowrap">
+      <div className="h-4 bg-gray-200 rounded w-32"></div>
+    </td>
+    <td className="px-4 py-2 whitespace-nowrap">
       <div className="h-4 bg-gray-200 rounded w-24"></div>
     </td>
   </tr>
@@ -106,6 +133,12 @@ export const AuditTable = ({ auditEntries, isLoading }: AuditTableProps) => {
             <tr>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Object ID
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Description
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Amount
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Object Type
@@ -134,36 +167,60 @@ export const AuditTable = ({ auditEntries, isLoading }: AuditTableProps) => {
               ))
             ) : auditEntries.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500">
                   No audit entries found
                 </td>
               </tr>
             ) : (
-              auditEntries.map((entry) => (
-                <tr key={entry.auditId} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 whitespace-nowrap text-sm font-mono text-gray-900">
-                    {entry.objectId.slice(0, 8)}...
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                    {entry.objectType}
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {format(new Date(entry.timestamp), 'MMM dd, HH:mm:ss')}
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <StatusBadge status={entry.newStatus} />
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <OutcomeBadge outcome={entry.newOutcome} />
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    <ActionBadge action={entry.action} />
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-500">
-                    <JsonMetadata metadata={entry.metadata} maxHeight="max-h-32" />
-                  </td>
-                </tr>
-              ))
+              auditEntries.map((entry) => {
+                const metadata = parseMetadata(entry.metadata);
+                return (
+                  <tr key={entry.auditId} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 whitespace-nowrap text-sm font-mono text-gray-900">
+                      {entry.objectId.slice(0, 8)}...
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {metadata.summary ? (
+                        <CompanySummary 
+                          summary={metadata.summary} 
+                          region={metadata.region}
+                        />
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {metadata.amount ? (
+                        <AmountDisplay 
+                          amount={metadata.amount} 
+                          currency={metadata.currency || 'USD'}
+                          formatted={metadata.formatted_amount}
+                        />
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                      {entry.objectType}
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                      {format(new Date(entry.timestamp), 'MMM dd, HH:mm:ss')}
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <StatusBadge status={entry.newStatus} />
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <OutcomeIcon outcome={entry.newOutcome} />
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <ActionBadge action={entry.action} />
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-500">
+                      <JsonMetadata metadata={entry.metadata} maxHeight="max-h-32" />
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -85,7 +85,6 @@ export class CassandraService {
 
   async getBatchObjects(limit: number = 100): Promise<any[]> {
     try {
-      // Try simple SELECT first without LIMIT to avoid the byte int error
       const query = `SELECT * FROM batch_objects`;
       const result = await this.client.execute(query);
       

@@ -54,11 +54,11 @@ const JsonMetadata: React.FC<JsonMetadataProps> = ({ metadata, maxHeight = 'max-
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            View JSON
+            Payload
           </summary>
           <div className={`mt-2 ${maxHeight} overflow-auto`}>
-            <pre className={`text-xs bg-gray-900 text-gray-100 p-3 rounded-md font-mono leading-relaxed whitespace-pre-wrap ${
-              isValidJson ? 'json-syntax' : ''
+            <pre className={`text-xs bg-gray-50 text-gray-800 p-3 rounded-md font-mono leading-relaxed whitespace-pre-wrap border border-gray-200 ${
+              isValidJson ? 'json-syntax-light' : ''
             }`}>
               <code 
                 dangerouslySetInnerHTML={{ 
@@ -69,8 +69,8 @@ const JsonMetadata: React.FC<JsonMetadataProps> = ({ metadata, maxHeight = 'max-
           </div>
         </details>
       ) : (
-        <pre className={`text-xs bg-gray-900 text-gray-100 p-2 rounded font-mono leading-relaxed whitespace-pre-wrap ${
-          isValidJson ? 'json-syntax' : ''
+        <pre className={`text-xs bg-gray-50 text-gray-800 p-2 rounded font-mono leading-relaxed whitespace-pre-wrap border border-gray-200 ${
+          isValidJson ? 'json-syntax-light' : ''
         }`}>
           <code 
             dangerouslySetInnerHTML={{ 

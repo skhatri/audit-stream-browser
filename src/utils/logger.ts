@@ -29,14 +29,14 @@ const createLogger = () => {
         )
       }),
       new winston.transports.File({
-        filename: path.join(logDir, 'paydash-error.log'),
+        filename: path.join(logDir, 'audit-stream-error.log'),
         level: 'error',
         maxsize: 100 * 1024 * 1024, // 100MB
         maxFiles: 5,
         tailable: true
       }),
       new winston.transports.File({
-        filename: path.join(logDir, 'paydash-application.log'),
+        filename: path.join(logDir, 'audit-stream-application.log'),
         maxsize: 100 * 1024 * 1024, // 100MB
         maxFiles: 10,
         tailable: true
@@ -45,13 +45,13 @@ const createLogger = () => {
     exceptionHandlers: [
       new winston.transports.Console(),
       new winston.transports.File({
-        filename: path.join(logDir, 'paydash-exceptions.log')
+        filename: path.join(logDir, 'audit-stream-exceptions.log')
       })
     ],
     rejectionHandlers: [
       new winston.transports.Console(),
       new winston.transports.File({
-        filename: path.join(logDir, 'paydash-rejections.log')
+        filename: path.join(logDir, 'audit-stream-rejections.log')
       })
     ]
   });

@@ -9,7 +9,7 @@ export const createQueueRoutes = (redisService: RedisService, cassandraService: 
     try {
       const limit = parseInt(req.query.limit as string) || 100;
       
-      // Get bulk data from Cassandra (persistent source)
+      // Get bulk data from Cassandra (persistent source) - using batch_objects table
       const cassandraObjects = await cassandraService.getBatchObjects(limit);
       
       // Get latest updates from Redis (real-time source)

@@ -17,6 +17,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.paydash.eventprocessor.config.FlinkConfig;
 import com.paydash.eventprocessor.model.BatchEvent;
 import com.paydash.eventprocessor.sink.CassandraSinkFunction;
+import com.paydash.eventprocessor.sink.ClickHouseSinkFunction;
 import com.paydash.eventprocessor.sink.RedisSinkFunction;
 
 public class SimpleEventProcessorJob {
@@ -44,10 +45,12 @@ public class SimpleEventProcessorJob {
         
         RedisSinkFunction redisSink = new RedisSinkFunction();
         CassandraSinkFunction cassandraSink = new CassandraSinkFunction();
+        ClickHouseSinkFunction clickHouseSink = new ClickHouseSinkFunction();
         
         try {
             redisSink.open(null);
             cassandraSink.open(null);
+            clickHouseSink.open(null);
             
             logger.info("Event Processor initialized, starting consumption...");
             
@@ -64,6 +67,7 @@ public class SimpleEventProcessorJob {
                         
                         redisSink.invoke(event, null);
                         cassandraSink.invoke(event, null);
+                        clickHouseSink.invoke(event, null);
                         
                         logger.debug("Successfully processed event: {} for object: {}", 
                             event.getEventType(), event.getPayload().getObjectId());
@@ -80,6 +84,7 @@ public class SimpleEventProcessorJob {
             try {
                 redisSink.close();
                 cassandraSink.close();
+                clickHouseSink.close();
                 consumer.close();
             } catch (Exception e) {
                 logger.error("Error closing resources", e);

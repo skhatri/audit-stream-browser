@@ -110,6 +110,29 @@ services:
     networks:
       - paydash-network
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    profiles:
+      - infra
+    container_name: clickhouse
+    ports:
+      - "8123:8123"    # HTTP interface
+      - "9000:9000"    # Native interface
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./config/clickhouse/:/etc/clickhouse-server/config.d/
+    environment:
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - paydash-network
+    restart: unless-stopped
+
   kafka-init:
     image: confluentinc/cp-kafka:7.5.0
     profiles:
@@ -137,6 +160,31 @@ services:
     networks:
       - paydash-network
 
+  clickhouse-init:
+    image: clickhouse/clickhouse-client:latest
+    profiles:
+      - infra
+    container_name: clickhouse-init
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    volumes:
+      - ./config/clickhouse/init-schema.sql:/init-schema.sql
+    entrypoint: ['/bin/sh', '-c']
+    command: |
+      "
+      # Wait for ClickHouse to be ready
+      sleep 10
+      
+      # Initialize schema
+      clickhouse-client --host clickhouse --port 9000 --queries-file /init-schema.sql
+      
+      echo 'ClickHouse schema initialized successfully'
+      "
+    restart: "no"
+    networks:
+      - paydash-network
+
 
 
 
@@ -148,3 +196,4 @@ volumes:
   redis_data:
   kafka_data:
   cassandra_data:
+  clickhouse_data:
