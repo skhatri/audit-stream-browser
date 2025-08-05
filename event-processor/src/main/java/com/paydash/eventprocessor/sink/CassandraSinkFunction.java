@@ -41,8 +41,12 @@ public class CassandraSinkFunction extends RichSinkFunction<BatchEvent> {
     @Override
     public void invoke(BatchEvent event, Context context) throws Exception {
         try {
-            insertBatchObject(event);
-            insertAuditEntry(event);
+            if (isItemAuditEvent(event)) {
+                handleItemAuditEvent(event);
+            } else {
+                insertBatchObject(event);
+                insertAuditEntry(event);
+            }
             logger.debug("Successfully processed event: {} for object: {}", 
                 event.getEventType(), event.getPayload().getObjectId());
         } catch (Exception e) {
@@ -154,6 +158,67 @@ public class CassandraSinkFunction extends RichSinkFunction<BatchEvent> {
             previousStatus,
             payload.getStatus(),
             previousOutcome,
+            payload.getOutcome(),
+            java.time.Instant.from(event.getTimestamp().atZone(java.time.ZoneOffset.UTC)),
+            payload.getMetadata() != null ? payload.getMetadata().toString() : null
+        );
+        
+        session.execute(statement);
+    }
+    
+    private boolean isItemAuditEvent(BatchEvent event) {
+        return event.getEventType().startsWith("ITEM_") && 
+               "item".equals(event.getPayload().getObjectType());
+    }
+    
+    private void handleItemAuditEvent(BatchEvent event) {
+        BatchEvent.BatchPayload payload = event.getPayload();
+        
+        // Validate parent batch exists
+        if (!batchExists(payload.getMetadata().get("parent_id"))) {
+            logger.warn("Parent batch {} not found for item {}", 
+                payload.getMetadata().get("parent_id"), payload.getObjectId());
+            return;
+        }
+        
+        // Insert item audit entry only (no batch object for items)
+        insertItemAuditEntry(event);
+        logger.info("Created item audit entry: {}", payload.getObjectId());
+    }
+    
+    private boolean batchExists(String parentId) {
+        if (parentId == null) return false;
+        
+        try {
+            PreparedStatement checkBatch = session.prepare(
+                "SELECT object_id FROM paydash.batch_objects WHERE object_id = ? LIMIT 1"
+            );
+            BoundStatement statement = checkBatch.bind(parentId);
+            var result = session.execute(statement);
+            return result.one() != null;
+        } catch (Exception e) {
+            logger.error("Error checking if batch {} exists", parentId, e);
+            return false;
+        }
+    }
+    
+    private void insertItemAuditEntry(BatchEvent event) {
+        BatchEvent.BatchPayload payload = event.getPayload();
+        
+        String action = event.getEventType().replace("ITEM_", "");
+        String parentId = payload.getMetadata().get("parent_id");
+        String parentType = payload.getMetadata().get("parent_type");
+        
+        BoundStatement statement = auditEntryInsert.bind(
+            UUID.randomUUID(),
+            payload.getObjectId(),
+            payload.getObjectType(),
+            parentId,
+            parentType,
+            action,
+            null, // previous_status (could be enhanced with state tracking)
+            payload.getStatus(),
+            null, // previous_outcome (could be enhanced with state tracking)
             payload.getOutcome(),
             java.time.Instant.from(event.getTimestamp().atZone(java.time.ZoneOffset.UTC)),
             payload.getMetadata() != null ? payload.getMetadata().toString() : null

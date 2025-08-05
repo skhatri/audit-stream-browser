@@ -47,6 +47,35 @@ export const createAuditRoutes = (cassandraService: CassandraService): Router =>
     }
   });
 
+  // Debug endpoint to check all audit entries
+  router.get('/debug/all', async (req: Request, res: Response) => {
+    try {
+      // Direct query to see all audit entries
+      const query = `SELECT object_id, object_type, parent_id, parent_type, action, new_status FROM paydash.audit_entries LIMIT 20 ALLOW FILTERING`;
+      const result = await (cassandraService as any).client.execute(query);
+      
+      res.json({
+        success: true,
+        count: result.rows.length,
+        data: result.rows.map((row: any) => ({
+          objectId: row.object_id?.toString(),
+          objectType: row.object_type?.toString(),
+          parentId: row.parent_id?.toString(),
+          parentType: row.parent_type?.toString(),
+          action: row.action?.toString(),
+          newStatus: row.new_status?.toString()
+        }))
+      });
+    } catch (error: any) {
+      logger.error('Error in debug query:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Debug query failed',
+        error: error.message
+      });
+    }
+  });
+
   router.get('/stream', async (req: Request, res: Response) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -118,6 +147,52 @@ export const createAuditRoutes = (cassandraService: CassandraService): Router =>
       isConnected = false;
       clearInterval(intervalId);
     });
+  });
+
+  // GET /api/audit/items/parent/{parentId}
+  router.get('/items/parent/:parentId', async (req: Request, res: Response) => {
+    try {
+      const { parentId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      const itemAudits = await cassandraService.getAuditEntriesByParentId(parentId, limit);
+      const stats = await cassandraService.getItemAuditStatsByParentId(parentId);
+      
+      res.json({
+        success: true,
+        data: itemAudits,
+        stats: stats,
+        count: itemAudits.length,
+        parentId: parentId
+      });
+    } catch (error) {
+      logger.error('Error fetching item audits for parent:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch item audit entries'
+      });
+    }
+  });
+
+  // GET /api/audit/items/parent/{parentId}/stats
+  router.get('/items/parent/:parentId/stats', async (req: Request, res: Response) => {
+    try {
+      const { parentId } = req.params;
+      
+      const stats = await cassandraService.getItemAuditStatsByParentId(parentId);
+      
+      res.json({
+        success: true,
+        data: stats,
+        parentId: parentId
+      });
+    } catch (error) {
+      logger.error('Error fetching item audit stats for parent:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch item audit statistics'
+      });
+    }
   });
 
   return router;

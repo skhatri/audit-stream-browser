@@ -1,5 +1,6 @@
 package com.paydash.eventgenerator.service;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
@@ -44,6 +45,40 @@ public class EventPublishingService {
         } catch (Exception e) {
             logger.error("Error publishing batch event: {}", event.getEventType(), e);
             throw new RuntimeException("Failed to publish event", e);
+        }
+    }
+    
+    public void publishItemAuditEvents(List<BatchEvent> events) {
+        try {
+            for (BatchEvent event : events) {
+                publishItemAuditEvent(event);
+            }
+            logger.info("Published {} item audit events in batch", events.size());
+        } catch (Exception e) {
+            logger.error("Error publishing item audit events batch", e);
+            throw new RuntimeException("Failed to publish item audit events", e);
+        }
+    }
+    
+    public void publishItemAuditEvent(BatchEvent event) {
+        try {
+            String key = event.getPayload().getObjectId();
+            
+            CompletableFuture<SendResult<String, Object>> future = 
+                kafkaTemplate.send(batchEventsTopic, key, event);
+            
+            future.whenComplete((result, exception) -> {
+                if (exception == null) {
+                    logger.debug("Published item audit event: {} for object: {} to topic: {} at offset: {}",
+                        event.getEventType(), key, batchEventsTopic, result.getRecordMetadata().offset());
+                } else {
+                    logger.error("Failed to publish item audit event: {} for object: {} to topic: {}",
+                        event.getEventType(), key, batchEventsTopic, exception);
+                }
+            });
+        } catch (Exception e) {
+            logger.error("Error publishing item audit event: {}", event.getEventType(), e);
+            throw new RuntimeException("Failed to publish item audit event", e);
         }
     }
 }

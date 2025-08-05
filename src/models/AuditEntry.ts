@@ -11,6 +11,8 @@ export interface AuditEntry {
   newOutcome?: Outcome;
   timestamp: Date;
   metadata?: string;
+  parentId?: string;
+  parentType?: string;
 }
 
 export enum AuditAction {
@@ -27,4 +29,26 @@ export interface AuditEntryCreate {
   previousOutcome?: Outcome;
   newOutcome?: Outcome;
   metadata?: string;
+  parentId?: string;
+  parentType?: string;
+}
+
+export interface ItemAuditEntry extends AuditEntry {
+  parentId: string;
+  parentType: 'batch';
+}
+
+export interface ItemAuditStats {
+  totalItems: number;
+  byStatus: Record<string, number>;
+  parentId: string;
+  lastUpdated: Date;
+}
+
+export interface ItemAuditResponse {
+  success: boolean;
+  data: ItemAuditEntry[];
+  stats: ItemAuditStats;
+  count: number;
+  parentId: string;
 }

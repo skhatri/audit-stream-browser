@@ -1,5 +1,5 @@
 import { Client } from 'cassandra-driver';
-import { AuditEntry, AuditAction } from '../models';
+import { AuditEntry, AuditAction, ItemAuditEntry, ItemAuditStats } from '../models';
 import { logger } from '../utils';
 
 export class CassandraService {
@@ -203,6 +203,102 @@ export class CassandraService {
     } catch (error) {
       logger.error(`Error fetching batch object ${objectId}:`, error);
       throw error;
+    }
+  }
+
+  async getAuditEntriesByParentId(parentId: string, limit: number = 100): Promise<ItemAuditEntry[]> {
+    try {
+      logger.info(`Querying item audit entries for parent: ${parentId}`);
+      
+      // Since parent_id is not part of the partition key, we need ALLOW FILTERING
+      // Note: Cannot use ORDER BY with ALLOW FILTERING, so we'll sort in application code
+      const query = `
+        SELECT audit_id, object_id, object_type, parent_id, parent_type, 
+               action, previous_status, new_status, previous_outcome, new_outcome, 
+               timestamp, metadata
+        FROM audit_entries 
+        WHERE object_type = 'item' AND parent_id = ?
+        LIMIT ?
+        ALLOW FILTERING
+      `;
+      
+      logger.info(`Executing query: ${query.replace(/\s+/g, ' ').trim()}`);
+      const result = await this.client.execute(query, [parentId, limit], { prepare: true });
+      logger.info(`Query returned ${result.rows.length} rows`);
+      
+      const auditEntries = result.rows.map(row => ({
+        auditId: row.audit_id?.toString() || '',
+        objectId: row.object_id?.toString() || '',
+        objectType: row.object_type?.toString() || '',
+        parentId: row.parent_id?.toString() || '',
+        parentType: row.parent_type?.toString() as 'batch' || 'batch',
+        action: row.action as AuditAction,
+        previousStatus: row.previous_status,
+        newStatus: row.new_status,
+        previousOutcome: row.previous_outcome,
+        newOutcome: row.new_outcome,
+        timestamp: new Date(row.timestamp),
+        metadata: row.metadata?.toString() || '{}'
+      })) as ItemAuditEntry[];
+      
+      // Sort by timestamp in descending order (most recent first)
+      auditEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      
+      return auditEntries;
+    } catch (error) {
+      logger.error(`Error fetching item audit entries for parent ${parentId}:`, error);
+      throw error;
+    }
+  }
+
+  async getItemAuditStatsByParentId(parentId: string): Promise<ItemAuditStats> {
+    try {
+      // Get all item audit entries for this parent and calculate stats in application code
+      // since Cassandra doesn't support GROUP BY on non-PK columns with ALLOW FILTERING
+      const query = `
+        SELECT new_status
+        FROM audit_entries 
+        WHERE object_type = 'item' AND parent_id = ?
+        ALLOW FILTERING
+      `;
+      
+      const result = await this.client.execute(query, [parentId], { prepare: true });
+      
+      const byStatus: Record<string, number> = {};
+      let totalItems = 0;
+
+      result.rows.forEach(row => {
+        const status = row.new_status || 'unknown';
+        byStatus[status] = (byStatus[status] || 0) + 1;
+        totalItems++;
+      });
+
+      return {
+        totalItems,
+        byStatus,
+        parentId,
+        lastUpdated: new Date()
+      };
+    } catch (error) {
+      logger.error(`Error fetching item audit stats for parent ${parentId}:`, error);
+      throw error;
+    }
+  }
+
+  async batchExists(objectId: string): Promise<boolean> {
+    try {
+      const query = `
+        SELECT object_id 
+        FROM batch_objects 
+        WHERE object_id = ?
+        LIMIT 1
+      `;
+      
+      const result = await this.client.execute(query, [objectId], { prepare: true });
+      return result.rows.length > 0;
+    } catch (error) {
+      logger.error(`Error checking if batch ${objectId} exists:`, error);
+      return false;
     }
   }
 }

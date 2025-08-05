@@ -9,7 +9,7 @@ export const Dashboard = () => {
   const { data, isLoading, error, newRecordIds, updatedRecordIds } = queueData;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div>
       <Header />
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
