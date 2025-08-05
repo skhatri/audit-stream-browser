@@ -45,21 +45,22 @@ export class CassandraService {
         ORDER BY timestamp DESC
       `;
       
-      const result = await this.client.execute(query, [objectType, objectId]);
+      // Based on Java CassandraSinkFunction, object_id is actually text, not UUID
+      const result = await this.client.execute(query, [objectType, objectId], { prepare: true });
       
       return result.rows.map(row => ({
-        auditId: row.audit_id,
-        objectId: row.object_id,
-        objectType: row.object_type,
-        parentId: row.parent_id,
-        parentType: row.parent_type,
+        auditId: row.audit_id?.toString() || '',
+        objectId: row.object_id?.toString() || '',
+        objectType: row.object_type?.toString() || '',
+        parentId: row.parent_id?.toString(),
+        parentType: row.parent_type?.toString(),
         action: row.action as AuditAction,
         previousStatus: row.previous_status,
         newStatus: row.new_status,
         previousOutcome: row.previous_outcome,
         newOutcome: row.new_outcome,
         timestamp: new Date(row.timestamp),
-        metadata: row.metadata || '{}'
+        metadata: row.metadata?.toString() || '{}'
       }));
     } catch (error) {
       logger.error(`Error fetching audit entries for ${objectType}:${objectId}:`, error);

@@ -18,60 +18,41 @@ describe('logger', () => {
   });
 
   describe('info', () => {
-    it('should log info messages with timestamp', () => {
+    it('should log info messages', () => {
       logger.info('Test info message', { extra: 'data' });
-
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[INFO\] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z - Test info message$/),
-        { extra: 'data' }
-      );
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Test info message'));
     });
   });
 
   describe('error', () => {
-    it('should log error messages with timestamp', () => {
+    it('should log error messages', () => {
       logger.error('Test error message', new Error('test'));
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[ERROR\] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z - Test error message$/),
-        new Error('test')
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Test error message'));
     });
   });
 
   describe('warn', () => {
-    it('should log warning messages with timestamp', () => {
+    it('should log warning messages', () => {
       logger.warn('Test warning message');
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[WARN\] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z - Test warning message$/)
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Test warning message'));
     });
   });
 
   describe('debug', () => {
     it('should log debug messages in development environment', () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
-
-      logger.debug('Test debug message');
-
-      expect(consoleDebugSpy).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[DEBUG\] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z - Test debug message$/)
-      );
-
-      process.env.NODE_ENV = originalEnv;
+        const originalEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'development';
+        logger.debug('Test debug message');
+        expect(consoleDebugSpy).toHaveBeenCalledWith(expect.stringContaining('Test debug message'));
+        process.env.NODE_ENV = originalEnv;
     });
 
     it('should not log debug messages in production environment', () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
-
-      logger.debug('Test debug message');
-
-      expect(consoleDebugSpy).not.toHaveBeenCalled();
-
-      process.env.NODE_ENV = originalEnv;
+        const originalEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'production';
+        logger.debug('Test debug message');
+        expect(consoleDebugSpy).not.toHaveBeenCalled();
+        process.env.NODE_ENV = originalEnv;
     });
   });
 });

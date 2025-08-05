@@ -195,16 +195,15 @@ export const QueueTable = ({ data, isLoading, newRecordIds = new Set(), updatedR
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => toggleRow(object.objectId, object.objectType)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      title="View audit history"
+                      className="text-indigo-600 hover:text-indigo-900 transition-colors duration-200 text-sm font-medium"
+                      title={expandedRows[object.objectId]?.isExpanded ? 'Hide Audit Trail' : 'View Audit Trail'}
                     >
-                      <svg
-                        className={`w-5 h-5 transform transition-transform duration-200 ${
-                          expandedRows[object.objectId]?.isExpanded ? 'rotate-180' : ''
-                        }`}
-                        fill="none"
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className={`h-6 w-6 transition-transform duration-200 ${expandedRows[object.objectId]?.isExpanded ? 'rotate-180' : ''}`}
+                        fill="none" 
+                        viewBox="0 0 24 24" 
                         stroke="currentColor"
-                        viewBox="0 0 24 24"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>

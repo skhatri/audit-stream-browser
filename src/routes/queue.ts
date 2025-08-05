@@ -8,19 +8,52 @@ export const createQueueRoutes = (redisService: RedisService, cassandraService: 
   router.get('/', async (req: Request, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 100;
-      const objects = await cassandraService.getBatchObjects(limit);
+      
+      // Get bulk data from Cassandra (persistent source)
+      const cassandraObjects = await cassandraService.getBatchObjects(limit);
+      
+      // Get latest updates from Redis (real-time source)
+      const redisObjects = await redisService.getQueueObjects(20);
+      
+      // Create a map for efficient merging - Redis data takes precedence
+      const mergedMap = new Map();
+      
+      // Add Cassandra data first
+      cassandraObjects.forEach(obj => {
+        mergedMap.set(obj.objectId, { ...obj, source: 'cassandra' });
+      });
+      
+      // Overlay Redis data (more recent updates)
+      redisObjects.forEach(obj => {
+        mergedMap.set(obj.objectId, { ...obj, source: 'redis' });
+      });
+      
+      // Convert back to array and sort by updated time
+      const mergedObjects = Array.from(mergedMap.values()).sort((a, b) => {
+        const updatedDiff = new Date(b.updated).getTime() - new Date(a.updated).getTime();
+        if (updatedDiff !== 0) {
+          return updatedDiff;
+        }
+        return new Date(b.created).getTime() - new Date(a.created).getTime();
+      });
+      
+      // Apply limit to final result
+      const finalObjects = mergedObjects.slice(0, limit);
       
       res.json({
         success: true,
-        data: objects,
-        count: objects.length,
-        source: 'cassandra'
+        data: finalObjects,
+        count: finalObjects.length,
+        source: 'cassandra+redis',
+        cassandraCount: cassandraObjects.length,
+        redisCount: redisObjects.length,
+        mergedCount: mergedObjects.length
       });
     } catch (error) {
-      logger.error('Error fetching queue objects from Cassandra:', error);
+      logger.error('Error fetching merged queue objects:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch queue objects from Cassandra'
+        message: 'Failed to fetch queue objects'
       });
     }
   });

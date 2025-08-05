@@ -21,6 +21,10 @@ lsof -ti:5173 | xargs kill -9 2>/dev/null || true
 lsof -ti:8080 | xargs kill -9 2>/dev/null || true  # Event-Generator
 lsof -ti:8081 | xargs kill -9 2>/dev/null || true  # Event-Processor
 
+cmd=$1
+if [[ "$cmd" == "stop" ]]; then
+  exit 0;
+fi;
 # Function to check service startup and monitor for failures
 check_service_startup() {
     local service_name=$1
